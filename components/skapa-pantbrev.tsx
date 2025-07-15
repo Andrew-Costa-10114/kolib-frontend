@@ -47,9 +47,13 @@ interface HousingCooperativeSigner {
   administrator_email: string;
 }
 
+interface CreditNumbers {
+  credit_number: number | null;
+}
+
 interface FormData {
   credit_number: string;
-  credit_numbers: string[];
+  credit_numbers: CreditNumbers[];
   add_more_credit_numbers: boolean;
   housing_cooperative_id: number;
   // Housing Cooperative Details
@@ -263,22 +267,27 @@ export default function SkapaPantbrev({ deedId }: SkapaPantbrevProps) {
 
   // Field arrays with proper typing
   console.log(selectedCooperative);
-  const creditNumbersArray = {
-    fields: form
-      .getValues()
-      .credit_numbers.map((value) => ({ id: Math.random().toString(), value })),
-    append: (value: string) => {
-      const current = form.getValues().credit_numbers || [];
-      form.setValue("credit_numbers", [...current, value]);
-    },
-    remove: (index: number) => {
-      const current = form.getValues().credit_numbers || [];
-      form.setValue(
-        "credit_numbers",
-        current.filter((_, i) => i !== index)
-      );
-    },
-  };
+  // const creditNumbersArray = {
+  //   fields: form
+  //     .getValues()
+  //     .credit_numbers.map((value) => ({ id: Math.random().toString(), value })),
+  //   append: (value: string) => {
+  //     const current = form.getValues().credit_numbers || [];
+  //     form.setValue("credit_numbers", [...current, value]);
+  //   },
+  //   remove: (index: number) => {
+  //     const current = form.getValues().credit_numbers || [];
+  //     form.setValue(
+  //       "credit_numbers",
+  //       current.filter((_, i) => i !== index)
+  //     );
+  //   },
+  // };
+
+  const creditNumbersArray = useFieldArray({
+    control: form.control,
+    name: "credit_numbers",
+  });
 
   const borrowersArray = useFieldArray({
     control: form.control,
@@ -295,7 +304,9 @@ export default function SkapaPantbrev({ deedId }: SkapaPantbrevProps) {
 
   // Helper functions for adding fields
   const handleAddCreditNumber = () => {
-    creditNumbersArray.append("");
+    creditNumbersArray.append({
+      credit_number: null,
+    });
   };
 
   const handleAddBorrower = () => {
@@ -466,12 +477,9 @@ export default function SkapaPantbrev({ deedId }: SkapaPantbrevProps) {
       }
       console.log("2------------------------------------");
       // Prepare credit numbers array
-      const creditNumbers = [
-        data.credit_number,
-        ...(data.add_more_credit_numbers
-          ? data.credit_numbers?.filter((num) => num?.trim()) || []
-          : []),
-      ];
+      const creditNumbers = data.credit_numbers.map(
+        (item) => item.credit_number
+      );
       console.log("3------------------------------------");
       // Prepare submit data based on form type
       const submitData = {
@@ -589,13 +597,13 @@ export default function SkapaPantbrev({ deedId }: SkapaPantbrevProps) {
                       <div key={field.id} className="flex items-center gap-2">
                         <FormField
                           control={form.control}
-                          name={`credit_numbers.${index}`}
+                          name={`credit_numbers.${index}.credit_number`}
                           render={({ field }) => (
                             <FormItem className="flex-1">
                               <FormControl>
                                 <Input
                                   {...field}
-                                  value={field.value || ""}
+                                  value={field.value ?? ""}
                                   placeholder={`Additional credit number ${
                                     index + 1
                                   }`}
@@ -770,7 +778,7 @@ export default function SkapaPantbrev({ deedId }: SkapaPantbrevProps) {
                 </div>
 
                 {/* Administrator Information */}
-                <div className="border-t pt-4">
+                {/* <div className="border-t pt-4">
                   <h4 className="font-medium mb-4">
                     Administrator Information
                   </h4>
@@ -810,7 +818,7 @@ export default function SkapaPantbrev({ deedId }: SkapaPantbrevProps) {
                       )}
                     />
                   </div>
-                </div>
+                </div> */}
               </div>
             </CardContent>
           </Card>
@@ -978,81 +986,75 @@ export default function SkapaPantbrev({ deedId }: SkapaPantbrevProps) {
           </Card>
 
           {/* Housing Cooperative Signers Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Housing Cooperative Signers</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {signersArray.fields.map((field, index) => (
-                <div key={field.id} className="space-y-4 p-4 border rounded-lg">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-sm font-medium">Signer {index + 1}</h3>
-                    {index > 0 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => signersArray.remove(index)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
+          {!form.watch("is_accounting_firm") && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Housing Cooperative Signers</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {signersArray.fields.map((field, index) => (
+                  <div
+                    key={field.id}
+                    className="space-y-4 p-4 border rounded-lg"
+                  >
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-sm font-medium">
+                        Signer {index + 1}
+                      </h3>
+                      {index > 0 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => signersArray.remove(index)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name={`housing_cooperative_signers.${index}.administrator_name`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Administrator Name</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name={`housing_cooperative_signers.${index}.administrator_person_number`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Administrator Person Number</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="YYYYMMDDXXXX" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name={`housing_cooperative_signers.${index}.administrator_email`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Administrator Email</FormLabel>
-                          <FormControl>
-                            <Input {...field} type="email" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name={`housing_cooperative_signers.${index}.administrator_name`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Administrator Name</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`housing_cooperative_signers.${index}.administrator_email`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Administrator Email</FormLabel>
+                            <FormControl>
+                              <Input {...field} type="email" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                   </div>
-                </div>
-              ))}
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleAddSigner}
-                className="mt-4"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Signer
-              </Button>
-            </CardContent>
-          </Card>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleAddSigner}
+                  className="mt-4"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Signer
+                </Button>
+              </CardContent>
+            </Card>
+          )}
           <Card>
             <CardHeader>
               <CardTitle>Accounting Firm</CardTitle>
